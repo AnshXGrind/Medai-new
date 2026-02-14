@@ -6,47 +6,104 @@
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
+const User = require('../models/User');
+
+// Helper functions
+function generateAccessToken(userId, email, role) {
+  return jwt.sign(
+    { userId, email, role },
+    process.env.JWT_SECRET || 'your-secret-key-change-this',
+    { expiresIn: process.env.JWT_EXPIRY || '1h' }
+  );
+}
+
+function generateRefreshToken(userId) {
+  return jwt.sign(
+    { userId },
+    process.env.REFRESH_TOKEN_SECRET || 'your-refresh-secret-change-this',
+    { expiresIn: process.env.REFRESH_TOKEN_EXPIRY || '7d' }
+  );
+}
 
 /**
  * Register a new user
  * @route POST /api/auth/register
  */
-exports.register = async (req, res) => {
+exports.register = async (req, res, next) => {
   try {
-    const { email, password, role, profile } = req.body;
+    const { email, password, fullName, phone, role, dateOfBirth, gender } = req.body;
 
     // Validation
-    if (!email || !password || !role) {
+    if (!email || !password || !fullName || !phone) {
       return res.status(400).json({
         success: false,
         error: {
           code: 'VALIDATION_ERROR',
-          message: 'Email, password, and role are required'
+          message: 'Email, password, fullName, and phone are required'
         }
       });
     }
 
-    // Check if user exists (implement with your database)
-    // const existingUser = await User.findOne({ email });
+    // Validate password strength
+    if (password.length < 8) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Password must be at least 8 characters long'
+        }
+      });
+    }
 
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, parseInt(process.env.SALT_ROUNDS) || 12);
+    // Check if user exists
+    const existingUser = await User.findOne({ 
+      $or: [{ email }, { phone }] 
+    });
 
-    // Create user in database
-    // const user = await User.create({ email, password: hashedPassword, role, profile });
+    if (existingUser) {
+      return res.status(409).json({
+        success: false,
+        error: {
+          code: 'USER_EXISTS',
+          message: existingUser.email === email 
+            ? 'Email already registered' 
+            : 'Phone number already registered'
+        }
+      });
+    }
+
+    // Create user
+    const user = new User({
+      email,
+      password, // Will be hashed by pre-save middleware
+      fullName,
+      phone,
+      role: role || 'patient',
+      dateOfBirth,
+      gender
+    });
+
+    // Generate health ID for patients
+    if (user.role === 'patient') {
+      user.generateHealthId();
+    }
+
+    await user.save();
 
     // Generate tokens
-    const accessToken = generateAccessToken({ email, role });
-    const refreshToken = generateRefreshToken({ email, role });
+    const accessToken = generateAccessToken(user._id, user.email, user.role);
+    const refreshToken = generateRefreshToken(user._id);
+
+    // Save refresh token
+    user.refreshToken = refreshToken;
+    user.lastLogin = new Date();
+    await user.save();
 
     res.status(201).json({
       success: true,
+      message: 'User registered successfully',
       data: {
-        user: {
-          email,
-          role,
-          // id: user.id
-        },
+        user: user.getPublicProfile(),
         tokens: {
           accessToken,
           refreshToken
@@ -55,13 +112,7 @@ exports.register = async (req, res) => {
     });
   } catch (error) {
     console.error('Registration error:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'SERVER_ERROR',
-        message: 'Error registering user'
-      }
-    });
+    next(error);
   }
 };
 
@@ -69,7 +120,7 @@ exports.register = async (req, res) => {
  * Login user
  * @route POST /api/auth/login
  */
-exports.login = async (req, res) => {
+exports.login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
@@ -83,23 +134,58 @@ exports.login = async (req, res) => {
       });
     }
 
-    // Find user in database
-    // const user = await User.findOne({ email });
+    // Find user with password field
+    const user = await User.findOne({ email }).select('+password +refreshToken');
+
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        error: {
+          code: 'INVALID_CREDENTIALS',
+          message: 'Invalid email or password'
+        }
+      });
+    }
+
+    // Check if account is active
+    if (!user.isActive || user.isSuspended) {
+      return res.status(403).json({
+        success: false,
+        error: {
+          code: 'ACCOUNT_SUSPENDED',
+          message: user.isSuspended 
+            ? `Account suspended: ${user.suspensionReason}` 
+            : 'Account is not active'
+        }
+      });
+    }
 
     // Verify password
-    // const isValid = await bcrypt.compare(password, user.password);
+    const isValid = await user.comparePassword(password);
 
-    // For demo - replace with actual verification
-    const accessToken = generateAccessToken({ email, role: 'patient' });
-    const refreshToken = generateRefreshToken({ email, role: 'patient' });
+    if (!isValid) {
+      return res.status(401).json({
+        success: false,
+        error: {
+          code: 'INVALID_CREDENTIALS',
+          message: 'Invalid email or password'
+        }
+      });
+    }
+
+    // Generate tokens
+    const accessToken = generateAccessToken(user._id, user.email, user.role);
+    const refreshToken = generateRefreshToken(user._id);
+
+    // Update refresh token and last login
+    user.refreshToken = refreshToken;
+    user.lastLogin = new Date();
+    await user.save();
 
     res.json({
       success: true,
       data: {
-        user: {
-          email,
-          role: 'patient'
-        },
+        user: user.getPublicProfile(),
         tokens: {
           accessToken,
           refreshToken
@@ -108,13 +194,7 @@ exports.login = async (req, res) => {
     });
   } catch (error) {
     console.error('Login error:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'SERVER_ERROR',
-        message: 'Error logging in'
-      }
-    });
+    next(error);
   }
 };
 
@@ -122,7 +202,7 @@ exports.login = async (req, res) => {
  * Refresh access token
  * @route POST /api/auth/refresh
  */
-exports.refreshToken = async (req, res) => {
+exports.refreshToken = async (req, res, next) => {
   try {
     const { refreshToken } = req.body;
 
@@ -137,13 +217,34 @@ exports.refreshToken = async (req, res) => {
     }
 
     // Verify refresh token
-    const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
+    let decoded;
+    try {
+      decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET || 'your-refresh-secret-change-this');
+    } catch (error) {
+      return res.status(401).json({
+        success: false,
+        error: {
+          code: 'INVALID_TOKEN',
+          message: 'Invalid or expired refresh token'
+        }
+      });
+    }
+
+    // Find user and verify refresh token matches
+    const user = await User.findById(decoded.userId).select('+refreshToken');
+
+    if (!user || user.refreshToken !== refreshToken) {
+      return res.status(401).json({
+        success: false,
+        error: {
+          code: 'INVALID_TOKEN',
+          message: 'Invalid refresh token'
+        }
+      });
+    }
 
     // Generate new access token
-    const accessToken = generateAccessToken({ 
-      email: decoded.email, 
-      role: decoded.role 
-    });
+    const accessToken = generateAccessToken(user._id, user.email, user.role);
 
     res.json({
       success: true,
@@ -152,13 +253,8 @@ exports.refreshToken = async (req, res) => {
       }
     });
   } catch (error) {
-    res.status(401).json({
-      success: false,
-      error: {
-        code: 'INVALID_TOKEN',
-        message: 'Invalid or expired refresh token'
-      }
-    });
+    console.error('Token refresh error:', error);
+    next(error);
   }
 };
 
@@ -166,61 +262,95 @@ exports.refreshToken = async (req, res) => {
  * Logout user
  * @route POST /api/auth/logout
  */
-exports.logout = async (req, res) => {
+exports.logout = async (req, res, next) => {
   try {
-    // Implement token blacklisting or session invalidation
-    // await TokenBlacklist.create({ token: req.token });
+    // req.user is set by auth middleware
+    if (req.user && req.user.userId) {
+      // Clear refresh token
+      await User.findByIdAndUpdate(req.user.userId, {
+        refreshToken: null
+      });
+    }
 
     res.json({
       success: true,
       message: 'Logged out successfully'
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'SERVER_ERROR',
-        message: 'Error logging out'
-      }
-    });
+    console.error('Logout error:', error);
+    next(error);
   }
 };
 
 /**
- * Verify email with OTP
- * @route POST /api/auth/verify-email
+ * Get current user profile
+ * @route GET /api/auth/me
  */
-exports.verifyEmail = async (req, res) => {
+exports.getProfile = async (req, res, next) => {
   try {
-    const { email, otp } = req.body;
+    const user = await User.findById(req.user.userId);
 
-    // Verify OTP logic
-    // const isValid = await verifyOTP(email, otp);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: {
+          code: 'USER_NOT_FOUND',
+          message: 'User not found'
+        }
+      });
+    }
 
     res.json({
       success: true,
-      message: 'Email verified successfully'
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'SERVER_ERROR',
-        message: 'Error verifying email'
+      data: {
+        user: user.getPublicProfile()
       }
     });
+  } catch (error) {
+    console.error('Get profile error:', error);
+    next(error);
   }
 };
 
-// Helper functions
-function generateAccessToken(payload) {
-  return jwt.sign(payload, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRY || '7d'
-  });
-}
+/**
+ * Update user profile
+ * @route PUT /api/auth/profile
+ */
+exports.updateProfile = async (req, res, next) => {
+  try {
+    const { fullName, phone, dateOfBirth, gender, address, profilePicture } = req.body;
 
-function generateRefreshToken(payload) {
-  return jwt.sign(payload, process.env.REFRESH_TOKEN_SECRET, {
-    expiresIn: process.env.REFRESH_TOKEN_EXPIRY || '30d'
-  });
-}
+    const user = await User.findById(req.user.userId);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: {
+          code: 'USER_NOT_FOUND',
+          message: 'User not found'
+        }
+      });
+    }
+
+    // Update allowed fields
+    if (fullName) user.fullName = fullName;
+    if (phone) user.phone = phone;
+    if (dateOfBirth) user.dateOfBirth = dateOfBirth;
+    if (gender) user.gender = gender;
+    if (address) user.address = address;
+    if (profilePicture) user.profilePicture = profilePicture;
+
+    await user.save();
+
+    res.json({
+      success: true,
+      message: 'Profile updated successfully',
+      data: {
+        user: user.getPublicProfile()
+      }
+    });
+  } catch (error) {
+    console.error('Update profile error:', error);
+    next(error);
+  }
+};

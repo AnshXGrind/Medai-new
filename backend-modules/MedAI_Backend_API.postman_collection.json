@@ -1,0 +1,647 @@
+{
+  "info": {
+    "name": "MedAI Backend API",
+    "description": "Complete API collection for MedAI Healthcare Platform Backend",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "medai-backend-api-collection",
+    "version": "1.0.0"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{access_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:5000/api",
+      "type": "string"
+    },
+    {
+      "key": "access_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "refresh_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "user_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "health_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Register User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('access_token', jsonData.data.tokens.accessToken);",
+                  "    pm.collectionVariables.set('refresh_token', jsonData.data.tokens.refreshToken);",
+                  "    pm.collectionVariables.set('user_id', jsonData.data.user.id);",
+                  "    pm.collectionVariables.set('health_id', jsonData.data.user.healthId);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"patient@medai.com\",\n  \"password\": \"Patient@123\",\n  \"fullName\": \"Test Patient\",\n  \"phone\": \"+919876543210\",\n  \"role\": \"patient\",\n  \"dateOfBirth\": \"1990-01-15\",\n  \"gender\": \"male\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "register"]
+            },
+            "description": "Register a new user (patient, doctor, admin, or asha_worker)"
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('access_token', jsonData.data.tokens.accessToken);",
+                  "    pm.collectionVariables.set('refresh_token', jsonData.data.tokens.refreshToken);",
+                  "    pm.collectionVariables.set('user_id', jsonData.data.user.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"patient@medai.com\",\n  \"password\": \"Patient@123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "Login with email and password"
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('access_token', jsonData.data.accessToken);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refresh_token}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/refresh",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "refresh"]
+            },
+            "description": "Get new access token using refresh token"
+          }
+        },
+        {
+          "name": "Get Profile",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/auth/me",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "me"]
+            },
+            "description": "Get current user profile (requires authentication)"
+          }
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Updated Name\",\n  \"phone\": \"+919876543210\",\n  \"address\": {\n    \"street\": \"123 Main St\",\n    \"city\": \"Mumbai\",\n    \"state\": \"Maharashtra\",\n    \"pincode\": \"400001\",\n    \"country\": \"India\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/profile",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "profile"]
+            },
+            "description": "Update user profile (requires authentication)"
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/auth/logout",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "logout"]
+            },
+            "description": "Logout current user (requires authentication)"
+          }
+        }
+      ],
+      "description": "Authentication endpoints for user registration, login, and token management"
+    },
+    {
+      "name": "Health Records",
+      "item": [
+        {
+          "name": "Create Health Record",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('health_id', jsonData.data.healthId);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"user123\",\n  \"fullName\": \"John Doe\",\n  \"dateOfBirth\": \"1990-05-15\",\n  \"bloodGroup\": \"O+\",\n  \"allergies\": [\"Penicillin\", \"Peanuts\"],\n  \"chronicConditions\": [\"Hypertension\"],\n  \"emergencyContact\": {\n    \"name\": \"Jane Doe\",\n    \"phone\": \"+919876543210\",\n    \"relation\": \"Spouse\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/health-records/create",
+              "host": ["{{base_url}}"],
+              "path": ["health-records", "create"]
+            },
+            "description": "Create a new health record and generate Health ID"
+          }
+        },
+        {
+          "name": "Get Health Record",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health-records/:healthId",
+              "host": ["{{base_url}}"],
+              "path": ["health-records", ":healthId"],
+              "variable": [
+                {
+                  "key": "healthId",
+                  "value": "{{health_id}}"
+                }
+              ]
+            },
+            "description": "Get health record by Health ID"
+          }
+        },
+        {
+          "name": "Update Health Record",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bloodGroup\": \"A+\",\n  \"allergies\": [\"Penicillin\", \"Peanuts\", \"Shellfish\"],\n  \"chronicConditions\": [\"Hypertension\", \"Diabetes Type 2\"]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/health-records/:healthId",
+              "host": ["{{base_url}}"],
+              "path": ["health-records", ":healthId"],
+              "variable": [
+                {
+                  "key": "healthId",
+                  "value": "{{health_id}}"
+                }
+              ]
+            },
+            "description": "Update health record"
+          }
+        },
+        {
+          "name": "Upload Document",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fileName\": \"blood-test-report.pdf\",\n  \"fileType\": \"application/pdf\",\n  \"fileSize\": 245760,\n  \"category\": \"lab-report\",\n  \"description\": \"Complete Blood Count Report\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/health-records/:healthId/upload",
+              "host": ["{{base_url}}"],
+              "path": ["health-records", ":healthId", "upload"],
+              "variable": [
+                {
+                  "key": "healthId",
+                  "value": "{{health_id}}"
+                }
+              ]
+            },
+            "description": "Upload a document to health record"
+          }
+        },
+        {
+          "name": "Get Documents",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health-records/:healthId/documents",
+              "host": ["{{base_url}}"],
+              "path": ["health-records", ":healthId", "documents"],
+              "variable": [
+                {
+                  "key": "healthId",
+                  "value": "{{health_id}}"
+                }
+              ]
+            },
+            "description": "Get all documents for a health ID"
+          }
+        }
+      ],
+      "description": "Health records management endpoints"
+    },
+    {
+      "name": "Disease Tracker",
+      "item": [
+        {
+          "name": "Get All Disease Data",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/disease-tracker/all",
+              "host": ["{{base_url}}"],
+              "path": ["disease-tracker", "all"]
+            },
+            "description": "Get disease tracking data for all locations"
+          }
+        },
+        {
+          "name": "Get Disease Data by Location",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/disease-tracker/location?city=Mumbai",
+              "host": ["{{base_url}}"],
+              "path": ["disease-tracker", "location"],
+              "query": [
+                {
+                  "key": "city",
+                  "value": "Mumbai"
+                }
+              ]
+            },
+            "description": "Get disease data for a specific city"
+          }
+        },
+        {
+          "name": "Get Nearby Disease Data",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/disease-tracker/nearby?latitude=19.0760&longitude=72.8777&radius=50",
+              "host": ["{{base_url}}"],
+              "path": ["disease-tracker", "nearby"],
+              "query": [
+                {
+                  "key": "latitude",
+                  "value": "19.0760"
+                },
+                {
+                  "key": "longitude",
+                  "value": "72.8777"
+                },
+                {
+                  "key": "radius",
+                  "value": "50",
+                  "description": "Radius in kilometers"
+                }
+              ]
+            },
+            "description": "Get disease data within radius of coordinates"
+          }
+        },
+        {
+          "name": "Refresh Disease Data",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/disease-tracker/refresh",
+              "host": ["{{base_url}}"],
+              "path": ["disease-tracker", "refresh"]
+            },
+            "description": "Refresh disease tracking data with latest dummy data"
+          }
+        }
+      ],
+      "description": "Local disease tracking endpoints"
+    },
+    {
+      "name": "Medicine Checker",
+      "item": [
+        {
+          "name": "Verify Medicine",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"barcode\": \"8901234567890\",\n  \"scannedBy\": \"user123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/medicine-checker/verify",
+              "host": ["{{base_url}}"],
+              "path": ["medicine-checker", "verify"]
+            },
+            "description": "Verify medicine authenticity by barcode"
+          }
+        },
+        {
+          "name": "Get Verification History",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/medicine-checker/history/:userId",
+              "host": ["{{base_url}}"],
+              "path": ["medicine-checker", "history", ":userId"],
+              "variable": [
+                {
+                  "key": "userId",
+                  "value": "user123"
+                }
+              ]
+            },
+            "description": "Get medicine verification history for a user"
+          }
+        },
+        {
+          "name": "Get Statistics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/medicine-checker/stats",
+              "host": ["{{base_url}}"],
+              "path": ["medicine-checker", "stats"]
+            },
+            "description": "Get medicine verification statistics"
+          }
+        }
+      ],
+      "description": "Medicine authenticity verification endpoints"
+    },
+    {
+      "name": "Medical News",
+      "item": [
+        {
+          "name": "Get Latest News",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/medical-news/latest?limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["medical-news", "latest"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Get latest medical news articles"
+          }
+        },
+        {
+          "name": "Get News by Category",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/medical-news/category/:category",
+              "host": ["{{base_url}}"],
+              "path": ["medical-news", "category", ":category"],
+              "variable": [
+                {
+                  "key": "category",
+                  "value": "research"
+                }
+              ]
+            },
+            "description": "Get news by category (research, outbreak, policy, technology)"
+          }
+        },
+        {
+          "name": "Search News",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/medical-news/search?q=covid",
+              "host": ["{{base_url}}"],
+              "path": ["medical-news", "search"],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "covid"
+                }
+              ]
+            },
+            "description": "Search medical news articles"
+          }
+        },
+        {
+          "name": "Refresh News",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/medical-news/refresh",
+              "host": ["{{base_url}}"],
+              "path": ["medical-news", "refresh"]
+            },
+            "description": "Refresh medical news with latest dummy data"
+          }
+        }
+      ],
+      "description": "Medical news endpoints"
+    },
+    {
+      "name": "Dashboard",
+      "item": [
+        {
+          "name": "Get Dashboard Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/dashboard/stats",
+              "host": ["{{base_url}}"],
+              "path": ["dashboard", "stats"]
+            },
+            "description": "Get overall dashboard statistics"
+          }
+        }
+      ],
+      "description": "Dashboard analytics endpoints"
+    },
+    {
+      "name": "Health Check",
+      "item": [
+        {
+          "name": "API Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:5000/api/health",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["api", "health"]
+            },
+            "description": "Check API health and database connection status"
+          }
+        },
+        {
+          "name": "Root",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:5000/",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": [""]
+            },
+            "description": "Root endpoint information"
+          }
+        }
+      ],
+      "description": "Health check endpoints"
+    }
+  ]
+}

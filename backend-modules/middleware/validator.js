@@ -197,3 +197,23 @@ exports.validateFileUpload = (req, res, next) => {
 
   next();
 };
+
+/**
+ * Compose validators for registration
+ */
+exports.validateRegistration = [
+  exports.validateRequired(['email', 'password', 'fullName', 'phone']),
+  exports.validateEmail,
+  exports.validatePassword,
+  exports.sanitizeInput
+];
+
+/**
+ * Compose validators for login
+ */
+exports.validateLogin = [
+  exports.validateRequired(['email', 'password']),
+  exports.validateEmail,
+  exports.sanitizeInput
+];
+

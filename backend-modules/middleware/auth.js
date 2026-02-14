@@ -102,17 +102,18 @@ exports.verifyRefreshToken = (req, res, next) => {
       });
     }
 
-    const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
-    req.user = decoded;
-
     next();
   } catch (error) {
-    res.status(401).json({
+    res.status(500).json({
       success: false,
       error: {
-        code: 'INVALID_REFRESH_TOKEN',
-        message: 'Invalid or expired refresh token'
+        code: 'SERVER_ERROR',
+        message: 'Error verifying refresh token'
       }
     });
   }
 };
+
+// Alias for compatibility
+exports.authenticateToken = exports.authenticate;
+
