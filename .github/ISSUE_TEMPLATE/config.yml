@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 GitHub Discussions
+    url: https://github.com/AnshXGrind/Medai-new/discussions
+    about: Ask questions and discuss ideas with the community
+  - name: 📖 Documentation
+    url: https://github.com/AnshXGrind/Medai-new/tree/main/docs
+    about: Read the full documentation
+  - name: 🔒 Security Advisory
+    url: https://github.com/AnshXGrind/Medai-new/security/advisories
+    about: Report security vulnerabilities privately
