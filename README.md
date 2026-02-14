@@ -319,85 +319,137 @@ Create a **privacy-first, accessible, consent-driven** digital health ecosystem 
 
 ## 🚀 Getting Started
 
-## 🚀 Getting Started
+### ⚡ Quick Start (3 Steps)
+
+If you've integrated Vercel with Supabase, follow these steps:
+
+#### 1️⃣ Apply Database Migration
+
+1. Go to [Supabase Dashboard](https://app.supabase.com/)
+2. Select your project → **SQL Editor** → **New Query**
+3. Open `APPLY_TO_SUPABASE.sql` from this repo
+4. Copy entire content → Paste → Click **RUN**
+5. Wait for success message ✅
+
+#### 2️⃣ Configure Local Environment
+
+Run the interactive setup wizard:
+
+```bash
+npm install
+npm run setup
+```
+
+Enter your Supabase credentials when prompted (get from Vercel or Supabase dashboard).
+
+#### 3️⃣ Start Development
+
+```bash
+npm run dev
+```
+
+Visit: http://localhost:5173/auth
+
+**✅ That's it!** Test signup/login and you're ready to develop.
+
+---
+
+### 📋 Detailed Installation Guide
+
+<details>
+<summary><b>Click to expand full installation steps</b></summary>
 
 ### Prerequisites
 
-Before you begin, ensure you have the following installed:
+Before you begin, ensure you have:
 
 - **Node.js** 18.x or higher ([Download](https://nodejs.org/))
 - **npm** 10.x or yarn 1.x
 - **Git** ([Download](https://git-scm.com/))
 - **Supabase Account** ([Sign up](https://supabase.com/))
-- **Code Editor** (VS Code recommended)
+- **Vercel Account** (optional, for deployment)
 
-### Installation Steps
-
-#### 1. Clone the Repository
+### 1. Clone Repository
 
 ```bash
 git clone https://github.com/AnshXGrind/Medai-new.git
 cd Medai-new
 ```
 
-#### 2. Install Frontend Dependencies
+### 2. Install Dependencies
 
 ```bash
 npm install
 ```
 
-#### 3. Install Backend Dependencies (Optional)
+### 3. Database Setup
 
+**Apply SQL Migration:**
+- Open [Supabase SQL Editor](https://app.supabase.com/)
+- Copy content from `APPLY_TO_SUPABASE.sql`
+- Paste and run
+
+**What this creates:**
+- `profiles` table with RLS policies
+- Auto-profile-creation trigger
+- Performance indexes
+- Security policies
+
+### 4. Environment Configuration
+
+**Option A: Interactive Wizard (Recommended)**
 ```bash
-cd backend-modules
-npm install
-cd ..
+npm run setup
 ```
 
-#### 4. Environment Configuration
-
-Create environment files from templates:
-
-**Frontend (.env.local):**
+**Option B: Manual Setup**
+Create `.env` file:
 ```bash
-cp .env.example .env.local
+VITE_SUPABASE_URL=your-project-url
+VITE_SUPABASE_ANON_KEY=your-anon-key
 ```
 
-**Backend (backend-modules/.env):**
-```bash
-cd backend-modules
-cp .env.example .env
-cd ..
-```
+**Get Credentials:**
+- Vercel: Project → Settings → Environment Variables
+- Supabase: Dashboard → Settings → API
 
-Edit these files with your actual credentials (see [Environment Variables](#-environment-variables) section).
-
-#### 5. Database Setup
-
-**Apply Supabase Migrations:**
+### 5. Verify Setup
 
 ```bash
-# Option 1: Using Supabase CLI
-supabase db push
-
-# Option 2: Using provided scripts
-npm run migrate
-
-# Or on Windows
-.\scripts\apply-migrations-auto.mjs
+npm run check-env
 ```
 
-**Verify RLS Policies:**
+Should show ✅ for all required variables.
 
-```bash
-npm run verify:migration
-```
+### 6. Run Development Server
 
-#### 6. Run Development Server
-
-**Frontend Only:**
 ```bash
 npm run dev
+```
+
+Visit http://localhost:5173
+
+</details>
+
+---
+
+### 🎯 Quick Commands
+
+```bash
+# Interactive setup wizard
+npm run setup
+
+# Check environment configuration
+npm run check-env
+
+# Start development server
+npm run dev
+
+# Build for production
+npm run build
+
+# Preview production build
+npm run preview
 ```
 
 **Frontend + Backend:**

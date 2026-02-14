@@ -9,6 +9,7 @@
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
+    "setup": "node setup-wizard.js",
     "check-env": "node check-env.js"
   },
   "dependencies": {
